@@ -1,0 +1,101 @@
+.tips-section {
+  background-color: #e0f2fe;
+  border-radius: 0.5rem;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.tips-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tips-header:hover {
+  background-color: #dbeafe;
+}
+
+.tips-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+.tips-header h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+  color: #1f2937;
+}
+
+.tips-toggle {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+}
+
+.tips-toggle span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: #6b7280;
+  transition: all 0.3s ease;
+}
+
+.tips-toggle.expanded span:first-child {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.tips-toggle.expanded span:last-child {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+
+.tips-content {
+  padding: 0 1.5rem 1.5rem;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tips-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tips-content li {
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin-bottom: 0.5rem;
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.tips-content li:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #6b7280;
+}
