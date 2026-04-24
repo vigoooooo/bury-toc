@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import TipsSection from '../components/TipsSection';
 import Notification from '../components/Notification';
+import { API_BASE_URL } from '../config';
 import './ProfileSettings.css';
 
 const ProfileSettings = () => {
@@ -35,7 +36,7 @@ const ProfileSettings = () => {
           return;
         }
         
-        const response = await fetch('http://localhost:8080/api/v1/user/get', {
+        const response = await fetch(`${API_BASE_URL}/api/v1/user/get`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -68,7 +69,7 @@ const ProfileSettings = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:8080/api/v1/user/update', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/user/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +104,7 @@ const ProfileSettings = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:8080/api/v1/user/reset_password', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/user/reset_password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +153,7 @@ const ProfileSettings = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:8080/api/v1/secret/delete_all', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/secret/delete_all`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -184,7 +185,7 @@ const ProfileSettings = () => {
       }
       
       // 检查用户是否有秘密
-      const secretsResponse = await fetch('http://localhost:8080/api/v1/secret/query', {
+      const secretsResponse = await fetch(`${API_BASE_URL}/api/v1/secret/query`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -201,7 +202,7 @@ const ProfileSettings = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:8080/api/v1/user/delete_account', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/user/delete_account`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

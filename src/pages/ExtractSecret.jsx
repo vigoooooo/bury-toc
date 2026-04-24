@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import TipsSection from '../components/TipsSection';
 import Notification from '../components/Notification';
+import { API_BASE_URL } from '../config';
 import './ExtractSecret.css';
 
 const ExtractSecret = () => {
@@ -37,7 +38,7 @@ const ExtractSecret = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/v1/secret/verify', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/secret/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -51,8 +52,8 @@ const ExtractSecret = () => {
 
       const data = await response.json();
       if (data.is_valid) {
-        // 重定向到查看秘密的页面
-        navigate(`/view-secret?id=${secretId}&extract_token=${data.extract_token}`);
+        // 重定向到带有 extract_token 和提取码的 ViewSecret 页面
+        navigate(`/view-secret?id=${secretId}&extract_token=${data.extract_token}&extract_code=${encodeURIComponent(extractionCode)}`);
       } else {
         setNotification({ message: 'Invalid extract code', type: 'error' });
       }

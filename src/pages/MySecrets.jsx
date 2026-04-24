@@ -5,6 +5,7 @@ import Footer from '../components/Footer';
 import TipsSection from '../components/TipsSection';
 import Icon from '../components/Icon';
 import Notification from '../components/Notification';
+import { API_BASE_URL, TOC_BASE_URL } from '../config';
 import './MySecrets.css';
 
 const MySecrets = () => {
@@ -67,7 +68,7 @@ const MySecrets = () => {
         return;
       }
       
-      const response = await fetch(`http://localhost:8080/api/v1/secret/query?page=${page}&pageSize=${pageSize}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/secret/query?page=${page}&pageSize=${pageSize}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -144,7 +145,7 @@ const MySecrets = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8080/api/v1/secret/verify', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/secret/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,10 +163,10 @@ const MySecrets = () => {
         // 根据操作类型进行不同的跳转
         if (actionType === 'view') {
           // 导航到查看秘密的页面
-          navigate(`/view-secret?id=${activeSecret.id}&extract_token=${data.extract_token}`);
+          navigate(`/view-secret?id=${activeSecret.id}&extract_token=${data.extract_token}&extract_code=${encodeURIComponent(extractCode)}`);
         } else if (actionType === 'edit') {
           // 导航到New Secret页面，并传递secret的内容
-          navigate(`/new-secret?edit=true&id=${activeSecret.id}&extract_token=${data.extract_token}&title=${encodeURIComponent(activeSecret.secret_title)}&content=${encodeURIComponent(activeSecret.secret_content || '')}&destruction_method=${activeSecret.destruction_method}&maximum_views=${activeSecret.maximum_views}&destroy_time=${activeSecret.destroy_time || ''}&show_in_secrets_list=${activeSecret.show_in_secrets_list}&enable_decoy_password=${activeSecret.enable_decoy_password}&destroy_on_decoy_access=${activeSecret.destroy_on_decoy_access}&wrong_password_destruction=${activeSecret.wrong_password_destruction || false}&failed_attempts=${activeSecret.failed_attempts || 1}&decoy_content=${encodeURIComponent(activeSecret.decoy_content || '')}`);
+          navigate(`/new-secret?edit=true&id=${activeSecret.id}&extract_token=${data.extract_token}&extract_code=${encodeURIComponent(extractCode)}&title=${encodeURIComponent(activeSecret.secret_title)}&content=${encodeURIComponent(activeSecret.secret_content || '')}&destruction_method=${activeSecret.destruction_method}&maximum_views=${activeSecret.maximum_views}&destroy_time=${activeSecret.destroy_time || ''}&show_in_secrets_list=${activeSecret.show_in_secrets_list}&enable_decoy_password=${activeSecret.enable_decoy_password}&destroy_on_decoy_access=${activeSecret.destroy_on_decoy_access}&wrong_password_destruction=${activeSecret.wrong_password_destruction || false}&failed_attempts=${activeSecret.failed_attempts || 1}&decoy_content=${encodeURIComponent(activeSecret.decoy_content || '')}`);
         }
         setShowExtractCodeInput(null);
         setActiveSecret(null);
@@ -182,7 +183,7 @@ const MySecrets = () => {
 
   const handleShareSecret = (secret) => {
     // 构建分享链接
-    const shareUrl = `http://localhost:5176/extract-secret?id=${secret.id}`;
+    const shareUrl = `${TOC_BASE_URL}/extract-secret?id=${secret.id}`;
     const shareText = `${secret.secret_title}: ${shareUrl}`;
     
     // 复制到剪贴板
@@ -211,7 +212,7 @@ const MySecrets = () => {
 
       // 确保secretId是字符串格式
       const secretId = String(showDeleteConfirm.id);
-      const response = await fetch('http://localhost:8080/api/v1/secret/delete', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/secret/delete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

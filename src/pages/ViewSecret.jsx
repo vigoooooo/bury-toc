@@ -4,22 +4,128 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import TipsSection from '../components/TipsSection';
 import Notification from '../components/Notification';
+import { API_BASE_URL } from '../config';
 import './ViewSecret.css';
+
+// 加密函数
+const encrypt = async (text, password) => {
+  try {
+    // 使用密码生成密钥
+    const encoder = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+    
+    const key = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt']
+    );
+    
+    // 加密数据
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt(
+      {
+        name: 'AES-GCM',
+        iv: iv
+      },
+      key,
+      encoder.encode(text)
+    );
+    
+    // 将结果转换为base64
+    const encryptedArray = new Uint8Array(encrypted);
+    const combined = new Uint8Array(salt.length + iv.length + encryptedArray.length);
+    combined.set(salt, 0);
+    combined.set(iv, salt.length);
+    combined.set(encryptedArray, salt.length + iv.length);
+    
+    return btoa(String.fromCharCode(...combined));
+  } catch (error) {
+    console.error('Encryption error:', error);
+    throw error;
+  }
+};
+
+// 解密函数
+const decrypt = async (encryptedText, password) => {
+  try {
+    // 解码base64
+    const combined = new Uint8Array([...atob(encryptedText)].map(char => char.charCodeAt(0)));
+    const salt = combined.slice(0, 16);
+    const iv = combined.slice(16, 16 + 12);
+    const encrypted = combined.slice(16 + 12);
+    
+    // 使用密码生成密钥
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+    
+    const key = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+    
+    // 解密数据
+    const decrypted = await crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv: iv
+      },
+      key,
+      encrypted
+    );
+    
+    return new TextDecoder().decode(decrypted);
+  } catch (error) {
+    console.error('Decryption error:', error);
+    throw error;
+  }
+};
 
 const ViewSecret = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [secret, setSecret] = useState(null);
+  const [decryptedContent, setDecryptedContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [showExtractCodeInput, setShowExtractCodeInput] = useState(false);
-  const [extractCode, setExtractCode] = useState('');
   const hasFetched = useRef(false);
 
-  // 从 URL 参数中获取 secret_id 和 extract_token
+  // 从 URL 参数中获取 secret_id、extract_token 和 extract_code
   const searchParams = new URLSearchParams(location.search);
   const secretId = searchParams.get('id');
   const extractToken = searchParams.get('extract_token');
+  const urlExtractCode = searchParams.get('extract_code');
+
+  // 直接从URL参数中获取extractCode
+  const [extractCode, setExtractCode] = useState(urlExtractCode || '');
 
   useEffect(() => {
     document.title = 'View Secret - Buried';
@@ -29,6 +135,7 @@ const ViewSecret = () => {
     console.log('useEffect triggered');
     console.log('secretId:', secretId);
     console.log('extractToken:', extractToken);
+    console.log('extractCode:', extractCode);
     console.log('hasFetched.current:', hasFetched.current);
 
     if (hasFetched.current) {
@@ -55,7 +162,7 @@ const ViewSecret = () => {
 
       try {
         console.log('Fetching secret...');
-        const response = await fetch(`http://localhost:8080/api/v1/secret/get/${secretId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/secret/get/${secretId}`, {
           method: 'GET',
           headers: {
             'X-Extract-Token': extractToken
@@ -81,6 +188,17 @@ const ViewSecret = () => {
         const data = await response.json();
         console.log('Secret data:', data);
         setSecret(data.secret);
+        
+        // 解密秘密内容
+        if (data.secret && data.secret.secret_content) {
+          try {
+            const content = await decrypt(data.secret.secret_content, extractCode);
+            setDecryptedContent(content);
+          } catch (error) {
+            console.error('Decryption error:', error);
+            setNotification({ message: 'Failed to decrypt secret. Please check your extract code.', type: 'error' });
+          }
+        }
       } catch (error) {
         console.error('Error fetching secret:', error);
         setNotification({ message: error.message || 'Failed to fetch secret', type: 'error' });
@@ -91,7 +209,7 @@ const ViewSecret = () => {
     };
 
     fetchSecret();
-  }, [secretId, extractToken, navigate]);
+  }, [secretId, extractToken, extractCode, navigate]);
 
   const handleVerifyExtractCode = async (e) => {
     e.preventDefault();
@@ -104,7 +222,7 @@ const ViewSecret = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8080/api/v1/secret/verify', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/secret/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -175,7 +293,7 @@ const ViewSecret = () => {
             <h2>Secret Details</h2>
             <div className="secret-info">
               <div className="secret-content">
-                <p>{secret.secret_content}</p>
+                <p>{decryptedContent || 'Decrypting...'}</p>
               </div>
             </div>
           </div>

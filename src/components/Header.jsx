@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Icon from './Icon';
+import { API_BASE_URL, WEB_BASE_URL } from '../config';
 import './Header.css';
 
 const Header = ({ showMenu = true }) => {
@@ -8,17 +9,54 @@ const Header = ({ showMenu = true }) => {
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setIsLoggedIn(false);
+        return;
+      }
+      
+      // 验证token的有效性
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/user/get`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          setIsLoggedIn(true);
+        } else {
+          // token无效，清除本地存储
+          localStorage.removeItem('token');
+          setIsLoggedIn(false);
+        }
+      } catch (error) {
+        console.error('Error verifying token:', error);
+        localStorage.removeItem('token');
+        setIsLoggedIn(false);
+      }
+    };
+    
+    checkAuth();
+  }, []);
 
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         localStorage.removeItem('token');
+        setIsLoggedIn(false);
         navigate('/login');
         return;
       }
       
-      const response = await fetch('http://localhost:8080/api/v1/user/logout', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/user/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -30,22 +68,20 @@ const Header = ({ showMenu = true }) => {
       }
       
       localStorage.removeItem('token');
+      setIsLoggedIn(false);
       navigate('/login');
     } catch (error) {
       console.error('Error logging out:', error);
       localStorage.removeItem('token');
+      setIsLoggedIn(false);
       navigate('/login');
     }
-  };
-
-  const isLoggedIn = () => {
-    return localStorage.getItem('token') !== null;
   };
 
   return (
     <header className="header">
       <div className="header-container">
-        <a href="http://localhost:5174/" className="logo">
+        <a href={WEB_BASE_URL} className="logo">
           <Icon name="lock" className="logo-icon" />
           <span className="logo-text">Buried</span>
         </a>
@@ -84,7 +120,7 @@ const Header = ({ showMenu = true }) => {
                 </span>
                 <span>My Secrets</span>
               </a>
-              {isLoggedIn() && (
+              {isLoggedIn && (
                 <>
                   <a 
                     href="/profile" 
