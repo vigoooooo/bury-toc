@@ -1,0 +1,62 @@
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 1000;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.bottom-bar.visible {
+  transform: translateY(0);
+}
+
+.bottom-bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.bottom-bar-item:hover {
+  color: #aa3bff;
+}
+
+.bottom-bar-item.active {
+  color: #aa3bff;
+}
+
+.bottom-bar-icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+}
+
+.bottom-bar-item.active .bottom-bar-icon {
+  stroke: #aa3bff;
+}
+
+.bottom-bar-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+@media (min-width: 768px) {
+  .bottom-bar {
+    display: none;
+  }
+}

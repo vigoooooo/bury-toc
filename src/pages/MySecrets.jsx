@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import BottomBar from '../components/BottomBar';
 import TipsSection from '../components/TipsSection';
 import Icon from '../components/Icon';
 import Notification from '../components/Notification';
@@ -402,6 +403,7 @@ const MySecrets = () => {
           </div>
         </div>
       </main>
+      <BottomBar />
       <Footer />
       {notification && (
         <Notification

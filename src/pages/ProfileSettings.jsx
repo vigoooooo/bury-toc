@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import BottomBar from '../components/BottomBar';
 import TipsSection from '../components/TipsSection';
 import Notification from '../components/Notification';
 import { API_BASE_URL } from '../config';
@@ -19,6 +20,35 @@ const ProfileSettings = () => {
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
   const [notification, setNotification] = useState(null);
   const hasFetched = useRef(false);
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/v1/user/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+      
+      localStorage.removeItem('token');
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      localStorage.removeItem('token');
+      navigate('/login');
+    }
+  };
 
   useEffect(() => {
     document.title = 'Profile Settings - Buried';
@@ -325,9 +355,21 @@ const ProfileSettings = () => {
                 <button className="btn btn-danger" onClick={handleDeleteAccount}>Delete Account</button>
               </div>
             </div>
+
+            <div className="settings-card logout-section">
+              <button className="btn btn-logout" onClick={handleLogout}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </main>
+      <BottomBar />
       <Footer />
 
       {/* Delete Secrets Confirm Dialog */}

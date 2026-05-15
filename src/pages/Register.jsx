@@ -58,7 +58,8 @@ const Register = () => {
         });
         
         if (!response.ok) {
-          throw new Error('Registration failed');
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Registration failed');
         }
         
         const data = await response.json();
@@ -66,7 +67,7 @@ const Register = () => {
         navigate('/my-secrets');
       } catch (error) {
         console.error('Registration error:', error);
-        setErrors({ register: 'Registration failed. Please try again.' });
+        setErrors({ register: error.message || 'Registration failed. Please try again.' });
       } finally {
         setLoading(false);
       }
@@ -74,7 +75,7 @@ const Register = () => {
   };
 
   return (
-    <div className="page">
+    <div className="page register-page">
       <Header />
       <main className="main">
         <div className="container">

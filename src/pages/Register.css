@@ -1,9 +1,15 @@
+.register-page {
+  padding-top: 80px;
+  min-height: calc(100vh - 80px);
+  box-sizing: border-box;
+}
+
 .register-form {
   background: #ffffff;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   border: 1px solid #e5e7eb;
   border-top: 4px solid #e5e7eb;
 }
@@ -45,8 +51,11 @@
   padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 0.875rem;
+  font-size: 1rem;
   transition: border-color 0.2s;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .form-group input:focus {

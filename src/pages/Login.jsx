@@ -4,9 +4,22 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import TipsSection from '../components/TipsSection';
 import { API_BASE_URL } from '../config';
+import { checkIsAppSync } from '../utils';
 import './Login.css';
 
 const Login = () => {
+  const [isMobileApp, setIsMobileApp] = useState(checkIsAppSync());
+  
+  useEffect(() => {
+    const checkApp = () => {
+      setIsMobileApp(checkIsAppSync());
+    };
+    checkApp();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', checkApp);
+      return () => document.removeEventListener('DOMContentLoaded', checkApp);
+    }
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
@@ -67,8 +80,8 @@ const Login = () => {
   };
 
   return (
-    <div className="page">
-      <Header />
+    <div className="page login-page">
+      <Header showMenu={!isMobileApp} />
       <main className="main">
         <div className="container">
           <div className="login-form">
