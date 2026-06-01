@@ -7,6 +7,12 @@
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  .tips-section {
+    margin-bottom: 0.5rem;
+  }
+}
+
 .tips-header {
   display: flex;
   align-items: center;

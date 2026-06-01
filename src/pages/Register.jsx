@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import TipsSection from '../components/TipsSection';
 import { API_BASE_URL } from '../config';
+import { checkIsAppSync } from '../utils';
 import './Register.css';
 
 const Register = () => {
+  const [isMobileApp, setIsMobileApp] = useState(checkIsAppSync());
   const [nickname, setNickname] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,6 +15,17 @@ const Register = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkApp = () => {
+      setIsMobileApp(checkIsAppSync());
+    };
+    checkApp();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', checkApp);
+      return () => document.removeEventListener('DOMContentLoaded', checkApp);
+    }
+  }, []);
 
   useEffect(() => {
     document.title = 'Register - Buried';
@@ -59,7 +71,7 @@ const Register = () => {
         
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.message || 'Registration failed');
+          throw new Error(errorData.error || errorData.message || 'Registration failed');
         }
         
         const data = await response.json();
@@ -76,17 +88,9 @@ const Register = () => {
 
   return (
     <div className="page register-page">
-      <Header />
+      <Header showMenu={!isMobileApp} />
       <main className="main">
         <div className="container">
-          <TipsSection title="Create an Account">
-            <ul>
-              <li>Your information is encrypted and stored securely.</li>
-              <li>We never share your personal data with third parties.</li>
-              <li>Create a strong password to protect your account.</li>
-              <li>You can manage your account settings at any time.</li>
-            </ul>
-          </TipsSection>
 
           <div className="register-form">
             <h2>Register</h2>

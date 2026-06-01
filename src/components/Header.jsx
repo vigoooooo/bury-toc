@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import Icon from './Icon';
 import { API_BASE_URL, WEB_BASE_URL } from '../config';
 import { isApp, checkIsAppSync } from '../utils';
@@ -108,16 +108,18 @@ const Header = ({ showMenu = true }) => {
               </div>
             </div>
             <nav className={`nav ${isMenuOpen ? 'open' : ''}`}>
-              <a 
-                href="/new-secret" 
+              <Link
+                to="/new-secret"
+                state={{}}
                 className={`nav-link ${currentPath === '/new-secret' ? 'active' : ''}`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <span className="nav-icon">+</span>
                 <span>New Secret</span>
-              </a>
-              <a 
-                href="/my-secrets" 
+              </Link>
+              <Link
+                to="/my-secrets"
+                state={{}}
                 className={`nav-link ${currentPath === '/my-secrets' ? 'active' : ''}`}
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -132,10 +134,11 @@ const Header = ({ showMenu = true }) => {
                   </svg>
                 </span>
                 <span>My Secrets</span>
-              </a>
+              </Link>
               {isLoggedIn && (
-                <a 
-                  href="/profile" 
+                <Link
+                  to="/profile"
+                  state={{}}
                   className={`nav-link ${currentPath === '/profile' ? 'active' : ''}`}
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -146,7 +149,7 @@ const Header = ({ showMenu = true }) => {
                     </svg>
                   </span>
                   <span>Profile</span>
-                </a>
+                </Link>
               )}
             </nav>
           </>

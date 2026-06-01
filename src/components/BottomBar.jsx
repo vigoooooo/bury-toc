@@ -109,7 +109,10 @@ const BottomBar = () => {
 
   const handleNavClick = (path) => {
     if (path !== currentPath) {
-      navigate(path);
+      navigate(path, { state: {} });
+    } else {
+      // 同一页面：强制刷新 state（清除残留的编辑参数等）
+      navigate(path, { state: {}, replace: true });
     }
   };
 

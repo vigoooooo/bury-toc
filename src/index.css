@@ -50,18 +50,24 @@
   }
 }
 
-body {
+html, body {
   margin: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 #root {
   max-width: 100%;
   margin: 0;
   text-align: left;
-  min-height: 100svh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
 }
 
 h1,
@@ -133,4 +139,51 @@ select:focus {
     font-size: 16px !important;
     -webkit-text-size-adjust: none !important;
   }
+}
+
+/* ===== iOS / Capacitor 针对性优化 ===== */
+
+/* 隐藏滚动条但保留滚动功能 */
+body.ios-app,
+body.ios-app * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body.ios-app::-webkit-scrollbar,
+body.ios-app *::-webkit-scrollbar {
+  display: none;
+}
+
+/* 移动端 Header 与主内容区对齐 — 保底 4rem，确保不被刘海遮挡 */
+@media (max-width: 768px) {
+  .header {
+    padding-top: max(env(safe-area-inset-top), 4rem) !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  /* main 的 padding-top 与 fixed Header 实际高度对齐 */
+  .create-secret-main,
+  .main,
+  .view-secret-content,
+  .profile-settings-main,
+  .login-main,
+  .register-main {
+    padding-top: calc(max(env(safe-area-inset-top), 4rem) + 2.5rem) !important;
+  }
+}
+
+/* 表单 input 宽度修复：全局统一确保不与边框重叠 */
+.extract-code-form input,
+.form-group input,
+.create-secret-form-group input[type="text"],
+.create-secret-form-group input[type="number"],
+.create-secret-form-group select,
+.create-secret-form-group textarea,
+.login-form-group input,
+.register-form-group input,
+.profile-settings-form-group input,
+.profile-settings-form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
 }

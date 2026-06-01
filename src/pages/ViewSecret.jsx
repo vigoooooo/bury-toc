@@ -5,108 +5,8 @@ import Footer from '../components/Footer';
 import TipsSection from '../components/TipsSection';
 import Notification from '../components/Notification';
 import { API_BASE_URL } from '../config';
+import { decrypt } from '../utils/crypto';
 import './ViewSecret.css';
-
-// 加密函数
-const encrypt = async (text, password) => {
-  try {
-    // 使用密码生成密钥
-    const encoder = new TextEncoder();
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(password),
-      { name: 'PBKDF2' },
-      false,
-      ['deriveBits', 'deriveKey']
-    );
-    
-    const key = await crypto.subtle.deriveKey(
-      {
-        name: 'PBKDF2',
-        salt: salt,
-        iterations: 100000,
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt']
-    );
-    
-    // 加密数据
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt(
-      {
-        name: 'AES-GCM',
-        iv: iv
-      },
-      key,
-      encoder.encode(text)
-    );
-    
-    // 将结果转换为base64
-    const encryptedArray = new Uint8Array(encrypted);
-    const combined = new Uint8Array(salt.length + iv.length + encryptedArray.length);
-    combined.set(salt, 0);
-    combined.set(iv, salt.length);
-    combined.set(encryptedArray, salt.length + iv.length);
-    
-    return btoa(String.fromCharCode(...combined));
-  } catch (error) {
-    console.error('Encryption error:', error);
-    throw error;
-  }
-};
-
-// 解密函数
-const decrypt = async (encryptedText, password) => {
-  try {
-    // 解码base64
-    const combined = new Uint8Array([...atob(encryptedText)].map(char => char.charCodeAt(0)));
-    const salt = combined.slice(0, 16);
-    const iv = combined.slice(16, 16 + 12);
-    const encrypted = combined.slice(16 + 12);
-    
-    // 使用密码生成密钥
-    const encoder = new TextEncoder();
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(password),
-      { name: 'PBKDF2' },
-      false,
-      ['deriveBits', 'deriveKey']
-    );
-    
-    const key = await crypto.subtle.deriveKey(
-      {
-        name: 'PBKDF2',
-        salt: salt,
-        iterations: 100000,
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['decrypt']
-    );
-    
-    // 解密数据
-    const decrypted = await crypto.subtle.decrypt(
-      {
-        name: 'AES-GCM',
-        iv: iv
-      },
-      key,
-      encrypted
-    );
-    
-    return new TextDecoder().decode(decrypted);
-  } catch (error) {
-    console.error('Decryption error:', error);
-    throw error;
-  }
-};
 
 const ViewSecret = () => {
   const navigate = useNavigate();
@@ -116,52 +16,38 @@ const ViewSecret = () => {
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [showExtractCodeInput, setShowExtractCodeInput] = useState(false);
+  const [extractCode, setExtractCode] = useState('');
   const hasFetched = useRef(false);
 
-  // 从 URL 参数中获取 secret_id、extract_token 和 extract_code
-  const searchParams = new URLSearchParams(location.search);
-  const secretId = searchParams.get('id');
-  const extractToken = searchParams.get('extract_token');
-  const urlExtractCode = searchParams.get('extract_code');
-
-  // 直接从URL参数中获取extractCode
-  const [extractCode, setExtractCode] = useState(urlExtractCode || '');
+  // 从导航 state 获取参数（不再从 URL 参数获取敏感的提取码）
+  const locationState = location.state || {};
+  const secretId = new URLSearchParams(location.search).get('id') || locationState.secretId;
+  const extractToken = locationState.extractToken;
+  const extractCodeFromState = locationState.extractCode;
+  const isDecoyFromState = locationState.isDecoy;
 
   useEffect(() => {
     document.title = 'View Secret - Buried';
   }, []);
 
   useEffect(() => {
-    console.log('useEffect triggered');
-    console.log('secretId:', secretId);
-    console.log('extractToken:', extractToken);
-    console.log('extractCode:', extractCode);
-    console.log('hasFetched.current:', hasFetched.current);
-
-    if (hasFetched.current) {
-      console.log('Already fetched, skipping');
-      return;
-    }
+    if (hasFetched.current) return;
     hasFetched.current = true;
 
     const fetchSecret = async () => {
       if (!secretId) {
-        console.log('No secretId');
         setNotification({ message: 'Invalid secret link', type: 'error' });
         setLoading(false);
         return;
       }
 
-      if (!extractToken) {
-        console.log('No extractToken');
-        // 如果没有 extract_token，显示提取码输入表单
-        setShowExtractCodeInput(true);
-        setLoading(false);
+      if (!extractToken || !extractCodeFromState) {
+        // 没有提取码或 token，需要重新验证
+        navigate(`/extract-secret?id=${secretId}`);
         return;
       }
 
       try {
-        console.log('Fetching secret...');
         const response = await fetch(`${API_BASE_URL}/api/v1/secret/get/${secretId}`, {
           method: 'GET',
           headers: {
@@ -169,13 +55,10 @@ const ViewSecret = () => {
           }
         });
 
-        console.log('Response status:', response.status);
         if (!response.ok) {
           try {
             const errorData = await response.json();
-            console.log('Error data:', errorData);
             if (errorData.error === 'Invalid or expired extract token') {
-              // Redirect to extract secret page
               navigate(`/extract-secret?id=${secretId}`);
               return;
             }
@@ -186,13 +69,12 @@ const ViewSecret = () => {
         }
 
         const data = await response.json();
-        console.log('Secret data:', data);
         setSecret(data.secret);
         
-        // 解密秘密内容
+        // 使用提取码在本地解密秘密内容（零知识架构）
         if (data.secret && data.secret.secret_content) {
           try {
-            const content = await decrypt(data.secret.secret_content, extractCode);
+            const content = await decrypt(data.secret.secret_content, extractCodeFromState);
             setDecryptedContent(content);
           } catch (error) {
             console.error('Decryption error:', error);
@@ -202,31 +84,23 @@ const ViewSecret = () => {
       } catch (error) {
         console.error('Error fetching secret:', error);
         setNotification({ message: error.message || 'Failed to fetch secret', type: 'error' });
-        console.log('Notification set:', { message: error.message || 'Failed to fetch secret', type: 'error' });
       } finally {
         setLoading(false);
       }
     };
 
     fetchSecret();
-  }, [secretId, extractToken, extractCode, navigate]);
+  }, [secretId, extractToken, extractCodeFromState, navigate]);
 
   const handleVerifyExtractCode = async (e) => {
     e.preventDefault();
     if (!secretId) return;
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setNotification({ message: 'Please login first', type: 'error' });
-        return;
-      }
-
       const response = await fetch(`${API_BASE_URL}/api/v1/secret/verify`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ secret_id: secretId, code: extractCode })
       });
@@ -237,8 +111,15 @@ const ViewSecret = () => {
 
       const data = await response.json();
       if (data.is_valid) {
-        // 重定向到带有 extract_token 的 ViewSecret 页面
-        navigate(`/view-secret?id=${secretId}&extract_token=${data.extract_token}`);
+        // 使用 state 传递提取码和 token（不再放入 URL）
+        navigate(`/view-secret?id=${secretId}`, {
+          state: {
+            secretId,
+            extractToken: data.extract_token,
+            extractCode: extractCode,
+            isDecoy: data.is_decoy
+          }
+        });
       } else {
         setNotification({ message: 'Invalid extract code', type: 'error' });
       }
@@ -265,7 +146,7 @@ const ViewSecret = () => {
       <Header showMenu={!!localStorage.getItem('token')} />
       <div className="view-secret-content">
         <TipsSection title="Security Notice" expanded={false}>
-          <p>We protect your secrets. All secrets in the system is encrypted and securely stored.</p>
+          <p>We protect your secrets. All secrets are encrypted and securely stored.</p>
           <p>Please do not share this link because token for this url can only be used once.</p>
         </TipsSection>
 

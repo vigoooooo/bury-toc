@@ -26,17 +26,14 @@ const MySecrets = () => {
     document.title = 'My Secrets - Buried';
   }, []);
   
-  // 监听窗口大小变化，判断是否为移动端
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
-  // 监听滚动事件，实现移动端向上拉动翻页
   useEffect(() => {
     const handleScroll = () => {
       if (isMobile && !loading && !isLoadingMore && currentPage < totalPages) {
@@ -49,13 +46,13 @@ const MySecrets = () => {
         }
       }
     };
-    
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isMobile, loading, isLoadingMore, currentPage, totalPages]);
 
   const [showExtractCodeInput, setShowExtractCodeInput] = useState(null);
   const [extractCode, setExtractCode] = useState('');
+  const [decoyPassword, setDecoyPassword] = useState('');
   const [activeSecret, setActiveSecret] = useState(null);
   const [showMoreMenu, setShowMoreMenu] = useState(null);
   const navigate = useNavigate();
@@ -118,13 +115,14 @@ const MySecrets = () => {
     });
   };
 
-  const [actionType, setActionType] = useState('view'); // 'view' or 'edit'
+  const [actionType, setActionType] = useState('view');
 
   const handleViewSecret = (secret) => {
     setActionType('view');
     setActiveSecret(secret);
     setShowExtractCodeInput(secret.id);
     setExtractCode('');
+    setDecoyPassword('');
   };
 
   const handleEditSecret = (secret) => {
@@ -132,6 +130,7 @@ const MySecrets = () => {
     setActiveSecret(secret);
     setShowExtractCodeInput(secret.id);
     setExtractCode('');
+    setDecoyPassword('');
     setShowMoreMenu(null);
   };
 
@@ -161,17 +160,32 @@ const MySecrets = () => {
 
       const data = await response.json();
       if (data.is_valid) {
-        // 根据操作类型进行不同的跳转
         if (actionType === 'view') {
-          // 导航到查看秘密的页面
-          navigate(`/view-secret?id=${activeSecret.id}&extract_token=${data.extract_token}&extract_code=${encodeURIComponent(extractCode)}`);
+          // 使用 React Router state 传递提取码（不放入 URL）
+          navigate(`/view-secret?id=${activeSecret.id}`, {
+            state: {
+              secretId: activeSecret.id,
+              extractToken: data.extract_token,
+              extractCode: extractCode,
+              isDecoy: data.is_decoy || false
+            }
+          });
         } else if (actionType === 'edit') {
-          // 导航到New Secret页面，并传递secret的内容
-          navigate(`/new-secret?edit=true&id=${activeSecret.id}&extract_token=${data.extract_token}&extract_code=${encodeURIComponent(extractCode)}&title=${encodeURIComponent(activeSecret.secret_title)}&content=${encodeURIComponent(activeSecret.secret_content || '')}&destruction_method=${activeSecret.destruction_method}&maximum_views=${activeSecret.maximum_views}&destroy_time=${activeSecret.destroy_time || ''}&show_in_secrets_list=${activeSecret.show_in_secrets_list}&enable_decoy_password=${activeSecret.enable_decoy_password}&destroy_on_decoy_access=${activeSecret.destroy_on_decoy_access}&wrong_password_destruction=${activeSecret.wrong_password_destruction || false}&failed_attempts=${activeSecret.failed_attempts || 1}&decoy_content=${encodeURIComponent(activeSecret.decoy_content || '')}`);
+          // 使用 React Router state 传递编辑参数
+          navigate('/new-secret', {
+            state: {
+              edit: true,
+              secretId: activeSecret.id,
+              extractToken: data.extract_token,
+              extractCode: extractCode,
+              decoyPassword: decoyPassword || ''
+            }
+          });
         }
         setShowExtractCodeInput(null);
         setActiveSecret(null);
         setExtractCode('');
+        setDecoyPassword('');
         setActionType('view');
       } else {
         setNotification({ message: 'Invalid extract code', type: 'error' });
@@ -183,11 +197,10 @@ const MySecrets = () => {
   };
 
   const handleShareSecret = (secret) => {
-    // 构建分享链接
+    // 分享链接只包含 secret_id，不包含提取码
     const shareUrl = `${TOC_BASE_URL}/extract-secret?id=${secret.id}`;
     const shareText = `${secret.secret_title}: ${shareUrl}`;
     
-    // 复制到剪贴板
     navigator.clipboard.writeText(shareText).then(() => {
       setNotification({ message: 'Share link copied to clipboard', type: 'success' });
     });
@@ -211,22 +224,19 @@ const MySecrets = () => {
         return;
       }
 
-      // 确保secretId是字符串格式
+      // 修复：使用正确的 DELETE 方法 + URL 参数
       const secretId = String(showDeleteConfirm.id);
-      const response = await fetch(`${API_BASE_URL}/api/v1/secret/delete`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/api/v1/secret/delete/${secretId}`, {
+        method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ secret_id: secretId })
+        }
       });
 
       if (!response.ok) {
         throw new Error('Failed to delete secret');
       }
 
-      // 从列表中移除删除的秘密
       setSecrets(secrets.filter(s => s.id !== showDeleteConfirm.id));
       setNotification({ message: 'Secret deleted successfully', type: 'success' });
       setShowDeleteConfirm(null);
@@ -244,8 +254,8 @@ const MySecrets = () => {
         <div className="container">
           <TipsSection title="Your Secrets are Secure">
             <ul>
-              <li>All secrets are encrypted and stored securely. Only you can access them with the extraction code.</li>
-              <li>Encrypted storage with no plaintext access</li>
+              <li>All secrets are encrypted on your device. Only you can access them with the extraction code.</li>
+              <li>Zero-knowledge encrypted storage - server can't read your data</li>
               <li>Automatic destruction based on your settings</li>
               <li>No tracking of who accesses your secrets</li>
               <li>Instant permanent deletion when requested</li>
@@ -327,7 +337,7 @@ const MySecrets = () => {
                       </div>
                       {showExtractCodeInput === secret.id && (
                         <div className="extract-code-input">
-                          <h4>Enter Extract Code to View Secret</h4>
+                          <h4>Enter Extract Code to {actionType === 'edit' ? 'Edit' : 'View'} Secret</h4>
                           <form onSubmit={handleVerifyExtractCode}>
                             <input
                               type="text"
@@ -336,6 +346,15 @@ const MySecrets = () => {
                               placeholder="Enter extract code"
                               required
                             />
+                            {actionType === 'edit' && secret.enable_decoy_password && (
+                              <input
+                                type="text"
+                                value={decoyPassword}
+                                onChange={(e) => setDecoyPassword(e.target.value)}
+                                placeholder="Decoy password (optional, for editing decoy content)"
+                                style={{ marginTop: '0.5rem' }}
+                              />
+                            )}
                             <div className="form-actions">
                               <button type="submit" className="btn btn-primary">Verify</button>
                               <button 
@@ -345,6 +364,7 @@ const MySecrets = () => {
                                   setShowExtractCodeInput(null);
                                   setActiveSecret(null);
                                   setExtractCode('');
+                                  setDecoyPassword('');
                                 }}
                               >
                                 Cancel
@@ -355,7 +375,6 @@ const MySecrets = () => {
                       )}
                     </div>
                   ))}
-                  {/* 移动端加载更多指示器 */}
                   {isMobile && currentPage < totalPages && (
                     <div className="loading-more">
                       {isLoadingMore ? 'Loading more...' : 'Pull up to load more'}
@@ -364,7 +383,6 @@ const MySecrets = () => {
                 </>
               )}
             </div>
-            {/* PC端分页组件 */}
             {!isMobile && total > 0 && (
               <div className="pagination">
                 <button 

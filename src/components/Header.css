@@ -7,6 +7,8 @@
   right: 0;
   z-index: 999;
   background-color: #ffffff;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .header-container {
@@ -122,11 +124,11 @@
   .header-container {
     padding: 0 1rem;
   }
-  
+
   .mobile-menu-toggle {
     display: block;
   }
-  
+
   .nav {
     position: absolute;
     top: 70px;
@@ -145,16 +147,21 @@
     transition: all 0.3s ease;
     z-index: 1000;
   }
-  
+
   .nav.open {
     transform: translateY(0);
     opacity: 1;
     pointer-events: auto;
   }
-  
+
   .nav-link {
     width: 100%;
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
+  }
+
+  /* 移动端菜单顶部与 Header 底部对齐 */
+  .nav {
+    top: calc(max(env(safe-area-inset-top), 4rem) + 2.5rem);
   }
 }

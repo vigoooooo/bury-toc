@@ -14,7 +14,7 @@ const ExtractSecret = () => {
   const [notification, setNotification] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 从 URL 参数中获取 secret_id
+  // 从 URL 参数中获取 secret_id（仅 ID 通过 URL 传递，提取码不再放入 URL）
   const searchParams = new URLSearchParams(location.search);
   const secretId = searchParams.get('id');
 
@@ -23,7 +23,6 @@ const ExtractSecret = () => {
   }, []);
 
   useEffect(() => {
-    // 如果没有 secret_id，提示非法访问并跳转到登录页面
     if (!secretId) {
       setNotification({ message: 'Invalid access', type: 'error' });
       setTimeout(() => {
@@ -52,8 +51,15 @@ const ExtractSecret = () => {
 
       const data = await response.json();
       if (data.is_valid) {
-        // 重定向到带有 extract_token 和提取码的 ViewSecret 页面
-        navigate(`/view-secret?id=${secretId}&extract_token=${data.extract_token}&extract_code=${encodeURIComponent(extractionCode)}`);
+        // 使用 React Router state 传递提取码和 token（不放入 URL，防止泄露）
+        navigate(`/view-secret?id=${secretId}`, {
+          state: {
+            secretId,
+            extractToken: data.extract_token,
+            extractCode: extractionCode,
+            isDecoy: data.is_decoy || false
+          }
+        });
       } else {
         setNotification({ message: 'Invalid extract code', type: 'error' });
       }
@@ -65,7 +71,6 @@ const ExtractSecret = () => {
     }
   };
 
-  // 检查用户是否已登录
   const isLoggedIn = () => {
     return localStorage.getItem('token') !== null;
   };
@@ -77,7 +82,7 @@ const ExtractSecret = () => {
         <div className="container">
           <TipsSection title="Secure Secret Extraction">
             <ul>
-              <li>Secrets are decrypted only when accessed with the correct code. We never store unencrypted data.</li>
+              <li>Secrets are decrypted only on your device with the correct code. We never store unencrypted data.</li>
               <li>End-to-end encryption - decrypted only on your device</li>
               <li>No server-side logging of extracted content</li>
               <li>Single-use or limited-view access as configured</li>
